@@ -30,12 +30,7 @@ body::after {
   background-size: contain;
   opacity: 0.05;
   pointer-events: none;
-  background-image: url("data:image/svg+xml;utf8,\
-  <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 300'>\
-  <path fill='white' d='M100 200 L150 170 Q200 120 300 120 L500 120 Q600 120 650 170 L700 200 L700 220 L650 220 Q640 260 600 260 Q560 260 550 220 L250 220 Q240 260 200 260 Q160 260 150 220 L100 220 Z'/>\
-  <circle cx='200' cy='230' r='25' fill='white'/>\
-  <circle cx='600' cy='230' r='25' fill='white'/>\
-  </svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 300'><path fill='white' d='M100 200 L150 170 Q200 120 300 120 L500 120 Q600 120 650 170 L700 200 L700 220 L650 220 Q640 260 600 260 Q560 260 550 220 L250 220 Q240 260 200 260 Q160 260 150 220 L100 220 Z'/><circle cx='200' cy='230' r='25' fill='white'/><circle cx='600' cy='230' r='25' fill='white'/></svg>");
 }
 
 .main-card {
@@ -60,22 +55,33 @@ h2 {
   transition: 0.2s;
 }
 
-#successToast {
+.toast-container {
   position: fixed;
   top: 20px;
   right: 20px;
   z-index: 1060;
-  display: none;
+}
+
+.alert-toast {
   border-radius: 15px;
+  display: none;
+  min-width: 280px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="successToast" class="alert alert-success alert-dismissible fade show" role="alert">
-<strong>✔ Sukces!</strong> Operacja wykonana pomyślnie.
-<button type="button" class="btn-close" onclick="document.getElementById('successToast').style.display='none'"></button>
+<div class="toast-container">
+  <div id="successToast" class="alert alert-success alert-dismissible fade show alert-toast" role="alert">
+    <strong>✔ Sukces!</strong> <span id="successMsg">Operacja wykonana pomyślnie.</span>
+    <button type="button" class="btn-close" onclick="ukryjAlert('successToast')"></button>
+  </div>
+
+  <div id="errorToast" class="alert alert-danger alert-dismissible fade show alert-toast" role="alert">
+    <strong>✖ Błąd!</strong> <span id="errorMsg">Wypełnij wszystkie wymagane pola.</span>
+    <button type="button" class="btn-close" onclick="ukryjAlert('errorToast')"></button>
+  </div>
 </div>
 
 <div class="container py-5">
@@ -87,11 +93,12 @@ h2 {
 Ewidencja Pojazdów
 </h2>
 
-<button type="button" class="btn btn-primary shadow" data-bs-toggle="modal" data-bs-target="#modalPojazd">
+<button type="button" class="btn btn-primary shadow" onclick="otworzModalDodaj()">
 <i class="bi bi-plus-lg me-1"></i> Dodaj pojazd
 </button>
 </div>
 
+<div class="table-responsive">
 <table class="table table-hover align-middle">
 <thead class="table-light">
 <tr>
@@ -99,60 +106,102 @@ Ewidencja Pojazdów
 <th>Marka</th>
 <th>Model</th>
 <th>Rok</th>
+<th>Data przeglądu</th>
+<th>Właściciel</th>
 <th class="text-center">Akcje</th>
 </tr>
 </thead>
 <tbody id="tabelaBody">
-<tr>
+<tr data-index="0">
 <td>KR 12345</td>
 <td>Toyota</td>
 <td>Corolla</td>
 <td>2020</td>
+<td>2026-05-15</td>
+<td>Jan Kowalski</td>
 <td class="text-center">
-<button class="btn btn-sm btn-outline-danger" onclick="przygotujUsuniecie(this)">
+<button class="btn btn-sm btn-outline-primary me-1" onclick="edytujPojazd(0)" title="Edytuj">
+<i class="bi bi-pencil"></i>
+</button>
+<button class="btn btn-sm btn-outline-danger" onclick="przygotujUsuniecie(0)" title="Usuń">
 <i class="bi bi-trash"></i>
 </button>
 </td>
 </tr>
 </tbody>
 </table>
+</div>
 
 </div>
 </div>
 
+<!-- Modal Dodaj/Edytuj Pojazd -->
 <div class="modal fade" id="modalPojazd" tabindex="-1">
 <div class="modal-dialog">
 <div class="modal-content rounded-4">
 <div class="modal-header">
-<h5 class="modal-title">Dodaj Nowy Pojazd</h5>
+<h5 class="modal-title" id="modalTitle">Dodaj Nowy Pojazd</h5>
 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body">
 <form id="formPojazd" class="needs-validation" novalidate>
 
 <div class="mb-3">
-<label class="form-label">Nr rejestracyjny</label>
-<input type="text" class="form-control" id="nrRej" required />
+<label class="form-label">Nr rejestracyjny *</label>
+<input type="text" class="form-control" id="nrRej" 
+  pattern="^[A-Z]{2,3}\s?[A-Z0-9]{4,5}$" 
+  placeholder="np. KR 12345 lub WA12345"
+  required />
+<div class="invalid-feedback">
+  Podaj poprawny nr rejestracyjny (np. KR 12345)
+</div>
 </div>
 
 <div class="mb-3">
-<label class="form-label">Marka</label>
-<input type="text" class="form-control" id="marka" required />
+<label class="form-label">Marka *</label>
+<input type="text" class="form-control" id="marka" minlength="2" required />
+<div class="invalid-feedback">
+  Podaj markę pojazdu (min. 2 znaki)
+</div>
 </div>
 
 <div class="mb-3">
-<label class="form-label">Model</label>
-<input type="text" class="form-control" id="model" required />
+<label class="form-label">Model *</label>
+<input type="text" class="form-control" id="model" minlength="1" required />
+<div class="invalid-feedback">
+  Podaj model pojazdu
+</div>
 </div>
 
 <div class="mb-3">
-<label class="form-label">Rok produkcji</label>
+<label class="form-label">Rok produkcji *</label>
 <input type="number" class="form-control" id="rok" min="1900" max="2026" required />
+<div class="invalid-feedback">
+  Podaj rok z zakresu 1900-2026
 </div>
+</div>
+
+<div class="mb-3">
+<label class="form-label">Data przeglądu *</label>
+<input type="date" class="form-control" id="dataPrzegladu" required />
+<div class="invalid-feedback">
+  Wybierz datę przeglądu
+</div>
+</div>
+
+<div class="mb-3">
+<label class="form-label">Właściciel *</label>
+<input type="text" class="form-control" id="wlasciciel" minlength="3" required />
+<div class="invalid-feedback">
+  Podaj imię i nazwisko właściciela (min. 3 znaki)
+</div>
+</div>
+
+<input type="hidden" id="edytowanyIndex" value="" />
 
 <div class="modal-footer px-0 pb-0">
 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Anuluj</button>
-<button type="submit" class="btn btn-success">Zapisz</button>
+<button type="submit" class="btn btn-success" id="btnZapisz">Zapisz</button>
 </div>
 
 </form>
@@ -161,11 +210,13 @@ Ewidencja Pojazdów
 </div>
 </div>
 
+<!-- Modal Potwierdzenie Usunięcia -->
 <div class="modal fade" id="modalUsun" tabindex="-1">
 <div class="modal-dialog modal-sm">
 <div class="modal-content rounded-4">
 <div class="modal-body text-center py-4">
-<h5>Na pewno usunąć?</h5>
+<i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 3rem;"></i>
+<h5 class="mt-3">Na pewno usunąć?</h5>
 <p class="text-muted">Tej operacji nie można cofnąć.</p>
 <div class="d-flex justify-content-center gap-2 mt-3">
 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Nie</button>
@@ -179,52 +230,155 @@ Ewidencja Pojazdów
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-let wierszDoUsuniecia = null;
+// Globalne referencje
+const formPojazd = document.getElementById('formPojazd');
+const tabelaBody = document.getElementById('tabelaBody');
+const modalPojazd = document.getElementById('modalPojazd');
+const modalUsun = document.getElementById('modalUsun');
+const modalTitle = document.getElementById('modalTitle');
+const btnZapisz = document.getElementById('btnZapisz');
+const btnPotwierdzUsun = document.getElementById('btnPotwierdzUsun');
 
-function pokazAlert() {
-const alert = document.getElementById("successToast");
-alert.style.display = "block";
-setTimeout(() => alert.style.display = "none", 3000);
-}
+let indexDoUsuniecia = null;
+let modalPojazdInstance = null;
+let modalUsunInstance = null;
 
-formPojazd.addEventListener("submit", function (event) {
-event.preventDefault();
-if (this.checkValidity()) {
-
-const row = tabelaBody.insertRow();
-row.innerHTML = `
-<td>${nrRej.value}</td>
-<td>${marka.value}</td>
-<td>${model.value}</td>
-<td>${rok.value}</td>
-<td class="text-center">
-<button class="btn btn-sm btn-outline-danger" onclick="przygotujUsuniecie(this)">
-<i class="bi bi-trash"></i>
-</button>
-</td>
-`;
-
-bootstrap.Modal.getInstance(modalPojazd).hide();
-this.reset();
-this.classList.remove("was-validated");
-pokazAlert();
-} else {
-this.classList.add("was-validated");
-}
+// Inicjalizacja instancji modali
+document.addEventListener('DOMContentLoaded', function() {
+  modalPojazdInstance = new bootstrap.Modal(modalPojazd);
+  modalUsunInstance = new bootstrap.Modal(modalUsun);
 });
 
-function przygotujUsuniecie(btn) {
-wierszDoUsuniecia = btn.closest("tr");
-new bootstrap.Modal(modalUsun).show();
+// Funkcje alertów
+function pokazAlert(typ, wiadomosc) {
+  const alertId = typ === 'sukces' ? 'successToast' : 'errorToast';
+  const msgId = typ === 'sukces' ? 'successMsg' : 'errorMsg';
+
+  const alert = document.getElementById(alertId);
+  const msg = document.getElementById(msgId);
+
+  msg.textContent = wiadomosc;
+  alert.style.display = "block";
+
+  setTimeout(() => {
+    alert.style.display = "none";
+  }, 4000);
 }
 
-btnPotwierdzUsun.addEventListener("click", function () {
-if (wierszDoUsuniecia) {
-wierszDoUsuniecia.remove();
-wierszDoUsuniecia = null;
-bootstrap.Modal.getInstance(modalUsun).hide();
-pokazAlert();
+function ukryjAlert(alertId) {
+  document.getElementById(alertId).style.display = 'none';
 }
+
+// Otwórz modal w trybie dodawania
+function otworzModalDodaj() {
+  modalTitle.textContent = 'Dodaj Nowy Pojazd';
+  btnZapisz.textContent = 'Zapisz';
+  formPojazd.reset();
+  formPojazd.classList.remove('was-validated');
+  document.getElementById('edytowanyIndex').value = '';
+  modalPojazdInstance.show();
+}
+
+// Funkcja edycji pojazdu
+function edytujPojazd(index) {
+  const wiersz = document.querySelector(`tr[data-index="${index}"]`);
+  if (!wiersz) return;
+
+  const komorki = wiersz.querySelectorAll('td');
+
+  document.getElementById('nrRej').value = komorki[0].textContent;
+  document.getElementById('marka').value = komorki[1].textContent;
+  document.getElementById('model').value = komorki[2].textContent;
+  document.getElementById('rok').value = komorki[3].textContent;
+  document.getElementById('dataPrzegladu').value = komorki[4].textContent;
+  document.getElementById('wlasciciel').value = komorki[5].textContent;
+  document.getElementById('edytowanyIndex').value = index;
+
+  modalTitle.textContent = 'Edytuj Pojazd';
+  btnZapisz.textContent = 'Zaktualizuj';
+
+  formPojazd.classList.remove('was-validated');
+  modalPojazdInstance.show();
+}
+
+// Obsługa submitu formularza
+formPojazd.addEventListener('submit', function(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (!this.checkValidity()) {
+    this.classList.add('was-validated');
+    pokazAlert('blad', 'Wypełnij wszystkie pola poprawnie!');
+    return;
+  }
+
+  const nrRej = document.getElementById('nrRej').value.toUpperCase();
+  const marka = document.getElementById('marka').value;
+  const model = document.getElementById('model').value;
+  const rok = document.getElementById('rok').value;
+  const dataPrzegladu = document.getElementById('dataPrzegladu').value;
+  const wlasciciel = document.getElementById('wlasciciel').value;
+  const edytowanyIndex = document.getElementById('edytowanyIndex').value;
+
+  if (edytowanyIndex !== '') {
+    // Tryb edycji
+    const wiersz = document.querySelector(`tr[data-index="${edytowanyIndex}"]`);
+    if (wiersz) {
+      const komorki = wiersz.querySelectorAll('td');
+      komorki[0].textContent = nrRej;
+      komorki[1].textContent = marka;
+      komorki[2].textContent = model;
+      komorki[3].textContent = rok;
+      komorki[4].textContent = dataPrzegladu;
+      komorki[5].textContent = wlasciciel;
+      pokazAlert('sukces', 'Pojazd zaktualizowany!');
+    }
+  } else {
+    // Tryb dodawania
+    const nowyIndex = tabelaBody.children.length;
+    const row = tabelaBody.insertRow();
+    row.setAttribute('data-index', nowyIndex);
+    row.innerHTML = `
+      <td>${nrRej}</td>
+      <td>${marka}</td>
+      <td>${model}</td>
+      <td>${rok}</td>
+      <td>${dataPrzegladu}</td>
+      <td>${wlasciciel}</td>
+      <td class="text-center">
+        <button class="btn btn-sm btn-outline-primary me-1" onclick="edytujPojazd(${nowyIndex})" title="Edytuj">
+          <i class="bi bi-pencil"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-danger" onclick="przygotujUsuniecie(${nowyIndex})" title="Usuń">
+          <i class="bi bi-trash"></i>
+        </button>
+      </td>
+    `;
+    pokazAlert('sukces', 'Pojazd dodany pomyślnie!');
+  }
+
+  modalPojazdInstance.hide();
+  this.reset();
+  this.classList.remove('was-validated');
+});
+
+// Przygotowanie do usunięcia
+function przygotujUsuniecie(index) {
+  indexDoUsuniecia = index;
+  modalUsunInstance.show();
+}
+
+// Potwierdzenie usunięcia
+btnPotwierdzUsun.addEventListener('click', function() {
+  if (indexDoUsuniecia !== null) {
+    const wiersz = document.querySelector(`tr[data-index="${indexDoUsuniecia}"]`);
+    if (wiersz) {
+      wiersz.remove();
+      pokazAlert('sukces', 'Pojazd usunięty!');
+    }
+    indexDoUsuniecia = null;
+    modalUsunInstance.hide();
+  }
 });
 </script>
 
